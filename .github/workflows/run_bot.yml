@@ -29,6 +29,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Check Gemini Key
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "Gemini key length: ${#GEMINI_API_KEY}"
+
       - name: Test Gemini API
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -37,14 +43,24 @@ jobs:
           import os
           import google.generativeai as genai
 
-          genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+          key = os.environ.get("GEMINI_API_KEY", "")
 
-          model = genai.GenerativeModel("gemini-1.5-flash")
-          response = model.generate_content(
-              "Reply with exactly: GEMINI WORKING"
-          )
+          print("Gemini key length:", len(key))
 
-          print(response.text)
+          if not key:
+              raise Exception("GEMINI_API_KEY secret is empty")
+
+          genai.configure(api_key=key)
+
+          try:
+              model = genai.GenerativeModel("gemini-1.5-flash")
+              response = model.generate_content("Reply with exactly: GEMINI WORKING")
+              print("SUCCESS:")
+              print(response.text)
+          except Exception as e:
+              print("GEMINI ERROR:")
+              print(str(e))
+              raise
           EOF
 
       - name: Install Playwright + Chromium
@@ -58,7 +74,7 @@ jobs:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
         run: |
-          python contact_bot_multistore.py
+          python -u contact_bot_multistore.py
 
       - name: Upload screenshots
         if: always()
