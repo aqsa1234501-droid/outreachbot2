@@ -40,7 +40,9 @@ jobs:
           genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
           model = genai.GenerativeModel("gemini-1.5-flash")
-          response = model.generate_content("Reply with exactly: GEMINI WORKING")
+          response = model.generate_content(
+              "Reply with exactly: GEMINI WORKING"
+          )
 
           print(response.text)
           EOF
@@ -50,4 +52,19 @@ jobs:
           python -m playwright install --with-deps chromium
 
       - name: Run contact bot
-        ...
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CAPTCHA_API_KEY: ${{ secrets.CAPTCHA_API_KEY }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_CREDS_JSON: ${{ secrets.GOOGLE_CREDS_JSON }}
+        run: |
+          python contact_bot_multistore.py
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.run_number }}
+          path: screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
